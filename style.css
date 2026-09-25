@@ -1,0 +1,1574 @@
+/* 로컬 도트 폰트. 기기에 폰트가 설치되어 있지 않아도 항상 이 폰트로 보이도록
+   woff2 파일을 직접 서빙한다 (구글 폰트 등 외부 CDN 사용 금지).
+   실제 파일은 assets/fonts/DungGeunMo.woff2 경로에 있어야 한다. */
+@font-face {
+  font-family: "DungGeunMo";
+  src: url("assets/fonts/DungGeunMo.woff2") format("woff2");
+  font-display: swap;
+}
+
+:root {
+  --color-bg: #12102a;
+  --color-surface: #1e1b3f;
+  --color-surface-2: #262157;
+  --color-primary: #7c6cf0;
+  --color-primary-dark: #5c4fd1;
+  --color-primary-light: #c9baff;
+  --color-primary-shadow: #33266b;
+  --color-accent: #ffd166;
+  --color-text: #f5f3ff;
+  --color-text-dim: #b8b3d9;
+  --color-error: #ff6b6b;
+
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --space-1: clamp(4px, 1vw, 6px);
+  --space-2: clamp(8px, 2vw, 12px);
+  --space-3: clamp(14px, 3vw, 20px);
+  --space-4: clamp(20px, 5vw, 32px);
+  --space-5: clamp(28px, 7vw, 48px);
+
+  --font-pixel: "DungGeunMo", "Courier New", monospace;
+  --touch-min: 44px;
+
+  /* 테두리.png(1086x1448)를 실측한 좌표. 이 이미지는 얇게 늘리는 반복
+     테두리가 아니라 카드 전체 모양의 액자 그림이라, #app을 이 비율(3:4)로
+     고정하고 아래 좌표로 "창"(장면이 보이는 투명 구간)과 "안내판"(하단
+     분홍 패널) 위치를 그대로 잡아 쓴다. */
+  --frame-win-left: 8.84%;
+  --frame-win-top: 6.28%;
+  --frame-win-width: 82.41%;
+  --frame-win-height: 58.7%;
+
+  --frame-panel-left: 8.75%;
+  --frame-panel-top: 68.94%;
+  --frame-panel-width: 82.41%;
+  --frame-panel-height: 23.2%;
+
+  /* 테두리 그림 왼쪽 아래에 그려진 책 장식의 좌표(픽셀 단위로 실측). 설정
+     버튼의 보이지 않는 클릭 영역을 이 위에 정확히 얹는 데 쓴다. */
+  --book-left: 9.5%;
+  --book-top: 86.5%;
+  --book-width: 17.5%;
+  --book-height: 11.5%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #060724;
+}
+
+body {
+  background: #060724;
+  color: var(--color-text);
+  font-family: var(--font-pixel);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* 도트 폰트가 안티앨리어싱으로 흐릿해지지 않도록. 브라우저 지원 여부에 따라
+     결과가 다를 수 있다(대부분의 최신 브라우저는 무시함). */
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* 테두리.png의 실제 비율(1086:1448 = 3:4)에 맞춰 #app 자체를 카드 모양으로
+   고정한다. 뷰포트가 이 비율과 다르면 남는 위아래/좌우 공간은 body 배경
+   (#060724)이 그대로 여백으로 보인다. */
+#app {
+  position: relative;
+  aspect-ratio: 1086 / 1448;
+  width: min(480px, 100vw, calc(100dvh * 1086 / 1448));
+  max-height: 100dvh;
+  overflow: hidden;
+  background: var(--color-bg);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  /* 언어를 고르기 전에는 테두리·이미지 등 앱의 어떤 것도 보이면 안 된다.
+     언어 버튼을 누르면 JS가 is-ready를 붙여서 그때 드러난다. */
+  display: none;
+}
+
+#app.is-ready {
+  display: block;
+}
+
+/* 맨 처음 진입 화면: 테두리도 이미지도 없이 언어 선택 버튼 두 개만 보여준다.
+   #app보다 먼저(그 앞에) 전체 화면을 덮어서, 언어를 고르기 전까지는 이
+   화면만 보인다. */
+.screen-language {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: #060724;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.screen-language.hidden {
+  display: none;
+}
+
+.lang-choices {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.screen {
+  display: none;
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* 상하 padding %는 컨테이너 너비 기준으로 계산되는 CSS 규칙 때문에,
+     세로 좌표(px)를 이미지 너비(1086)로 나눈 값을 그대로 쓰면 #app이 이미지와
+     같은 비율(3:4)로 고정되어 있어 정확히 들어맞는다. */
+  padding: max(8.38%, var(--space-4)) max(8.84%, var(--space-3))
+    max(10.5%, var(--space-4));
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* 모든 화면 위에 공통으로 얹는 장식 테두리. 카드 전체 모양의 액자 그림이라
+   9-slice로 늘리지 않고 #app 전체 크기에 그대로 맞춰 한 장으로 얹는다. */
+.app-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background-image: url("assets/images/테두리.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+/* 문 안으로 빨려들어가듯 화면이 서서히 암전되는 연출용 검정 막. 테두리
+   장식(z-index:50)까지 다 덮어야 하므로 그보다 위에 둔다. 방향(암전/걷힘)에
+   따라 다른 재생 시간을 JS에서 인라인으로 지정한다. */
+.scene-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* 픽셀아트 톤에 맞춘 각진 버튼. 둥근 모서리 대신 계단형으로 살짝 깎고,
+   그림자 대신 하이라이트/그림자 픽셀 라인으로 입체감을 낸다. */
+.btn-primary {
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: 0;
+  clip-path: polygon(
+    0 4px,
+    4px 4px,
+    4px 0,
+    calc(100% - 4px) 0,
+    calc(100% - 4px) 4px,
+    100% 4px,
+    100% calc(100% - 4px),
+    calc(100% - 4px) calc(100% - 4px),
+    calc(100% - 4px) 100%,
+    4px 100%,
+    4px calc(100% - 4px),
+    0 calc(100% - 4px)
+  );
+  background: var(--color-primary);
+  color: var(--color-text);
+  font-size: clamp(15px, 4vw, 18px);
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: inset 3px 3px 0 var(--color-primary-light),
+    inset -3px -3px 0 var(--color-primary-shadow),
+    0 4px 0 var(--color-primary-shadow);
+  transform: translateY(0);
+}
+
+.btn-primary:active {
+  background: var(--color-primary-dark);
+  box-shadow: inset -3px -3px 0 var(--color-primary-light),
+    inset 3px 3px 0 var(--color-primary-shadow);
+  transform: translateY(4px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+
+/* ---------- ONBOARDING ---------- */
+
+.screen-onboarding {
+  padding: 0;
+  justify-content: flex-start;
+}
+
+/* 테두리의 "창" 영역(위 --frame-win-*)을 꽉 채운다. door.png(1:2, 세로로 긺)를
+   창 비율(가로로 더 넓음)에 맞춰 object-fit:cover로 채우면 위아래가 잘리므로,
+   문이 보이는 구간만 남도록 object-position으로 자르는 위치를 맞췄다. */
+.door-stage {
+  position: absolute;
+  top: var(--frame-win-top);
+  left: var(--frame-win-left);
+  width: var(--frame-win-width);
+  height: var(--frame-win-height);
+  perspective: 500px;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* 문이 열린 뒤, 문 안쪽(어두운 부분)을 기준점 삼아 서서히 확대되며 그
+   안으로 빨려들어가는 느낌을 준다. */
+.door-stage.zooming {
+  transform: scale(1.2);
+  transform-origin: 50% 55%;
+  transition: transform 0.5s ease-in;
+}
+
+.door-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  image-rendering: pixelated;
+}
+
+/* door-leaf와 정확히 같은 자리에 겹쳐서, 문짝이 열릴 때 그 뒤로 드러나는
+   어두운 안쪽 공간을 표현한다. */
+.door-void {
+  position: absolute;
+  left: 30.27%;
+  top: 16.57%;
+  width: 39.56%;
+  height: 70.31%;
+  image-rendering: pixelated;
+}
+
+.door-leaf {
+  position: absolute;
+  left: 30.27%;
+  top: 16.57%;
+  width: 39.56%;
+  height: 70.31%;
+  image-rendering: pixelated;
+  transform-origin: right center;
+  transform: rotateY(0deg);
+  transition: transform 0.84s ease-in, opacity 0.84s ease-in;
+  backface-visibility: hidden;
+}
+
+.screen-onboarding.opening .door-leaf {
+  transform: rotateY(-100deg);
+  opacity: 0.6;
+}
+
+/* 들어가기를 누르면 문이 열리기 전에 버튼·힌트 문구·대화창 텍스트를 먼저
+   지운다. */
+.screen-onboarding.opening .door-cta,
+.screen-onboarding.opening #onboarding-dialog-box {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+/* 벽 그림에 이미 그려진 반짝임 위치(실측 좌표) 위에 작은 빛 점을 겹쳐
+   깜빡이게 한다. translate로 중심을 잡고, scale/opacity만 애니메이션해서
+   중앙 정렬과 트랜지션이 서로 덮어쓰지 않게 한다. */
+.door-sparkles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  left: var(--sx);
+  top: var(--sy);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #ffd6f0 35%,
+    rgba(255, 182, 224, 0) 75%
+  );
+  opacity: 0;
+  animation: sparkle-twinkle 2.6s ease-in-out infinite;
+  animation-delay: var(--sd);
+}
+
+.sparkle-lg {
+  width: 14px;
+  height: 14px;
+}
+
+.sparkle-md {
+  width: 10px;
+  height: 10px;
+}
+
+.sparkle-sm {
+  width: 6px;
+  height: 6px;
+}
+
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.15;
+  }
+  70% {
+    opacity: 0.5;
+    scale: 0.9;
+  }
+}
+
+/* 마법사의 방 배경에도 이미 그림으로 그려진 금빛/분홍빛 반짝임 마크가
+   있어서, 문 장면과 같은 방식으로 그 위치(실측 좌표) 위에 겹쳐 깜빡이게
+   한다. 색만 배경 그림에 실측한 색(금빛/분홍)에 맞춰 두 가지로 나눈다. */
+.room-sparkles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sparkle-gold {
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #ffe29a 35%,
+    rgba(255, 196, 110, 0) 75%
+  );
+}
+
+.sparkle-pink {
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #ffb8e8 35%,
+    rgba(255, 140, 210, 0) 75%
+  );
+}
+
+/* 책 오른쪽의 탁상 조명(램프), 오른쪽 아래 촛불처럼 항상 켜져 있는
+   불빛 위에 겹쳐서 은은하게 숨쉬듯 밝기가 오르내리는 온기 있는 빛무리.
+   반짝임(스파클)과 달리 꺼졌다 켜지지 않고 계속 켜져 있는 불이라, 사라졌다
+   나타나는 트윈클 대신 밝기/크기만 느리게 오르내리는 breathe 애니메이션을
+   쓴다. 위치는 --gx/--gy로 요소마다 지정해서, 같은 스타일을 램프·촛불 등
+   여러 불빛에 그대로 재사용한다. */
+.room-lamp-glow {
+  position: absolute;
+  left: var(--gx);
+  top: var(--gy);
+  width: 15%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 205, 120, 0.55) 35%,
+    rgba(255, 150, 60, 0) 72%
+  );
+  filter: blur(2px);
+  mix-blend-mode: screen;
+  z-index: 1;
+  pointer-events: none;
+  animation: lamp-glow-breathe 3.2s ease-in-out infinite;
+  animation-delay: var(--gd, 0s);
+}
+
+@keyframes lamp-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    scale: 0.92;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.08;
+  }
+}
+
+/* 창문 밖 별빛 위에 겹치는 은은한 빛무리. 램프/촛불과 같은 breathe
+   애니메이션을 쓰되, 방 안의 불빛보다 작고 차분한 색(달빛 느낌의
+   라벤더색/분홍색)으로 톤만 다르게 한다. */
+.room-window-glow {
+  position: absolute;
+  left: var(--gx);
+  top: var(--gy);
+  width: 7%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  filter: blur(2px);
+  mix-blend-mode: screen;
+  z-index: 1;
+  pointer-events: none;
+  animation: window-glow-breathe 3.6s ease-in-out infinite;
+  animation-delay: var(--gd, 0s);
+}
+
+.room-window-glow.is-moon {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(220, 205, 255, 0.35) 40%,
+    rgba(190, 170, 255, 0) 72%
+  );
+}
+
+.room-window-glow.is-pink {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 190, 225, 0.35) 40%,
+    rgba(255, 140, 210, 0) 72%
+  );
+}
+
+/* 창밖 별빛은 방 안 램프/촛불보다 한 단계 더 은은해야 해서, 같은
+   breathe 방식이지만 최고/최저 밝기와 최대 크기를 한 단계 낮춘 전용
+   키프레임을 쓴다(lamp-glow-breathe는 램프·촛불용으로 그대로 둔다). */
+@keyframes window-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+    scale: 0.92;
+  }
+  50% {
+    opacity: 0.75;
+    scale: 1.05;
+  }
+}
+
+/* 왼쪽 아래 고양이의 눈이 좌우로 왔다갔다 하는 애니메이션. 고양이 자체는
+   배경 그림에 통째로 그려진 정적 이미지라 눈만 따로 뗄 수 없으므로, 그림에
+   실측한 눈 위치를 고양이 털 색(mask)으로 살짝 덮은 뒤, 그 위에 같은 색의
+   작은 눈(pupil)을 새로 그려서 겹치고 그것만 좌우로 움직인다. */
+.cat-eyes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cat-eye-mask {
+  position: absolute;
+  left: var(--ex);
+  top: var(--ey);
+  translate: -50% -50%;
+  width: 4px;
+  height: 7px;
+  background: #0c1423;
+  border-radius: 1px;
+}
+
+.cat-eye-pupil {
+  position: absolute;
+  left: var(--ex);
+  top: var(--ey);
+  translate: -50% -50%;
+  width: 2px;
+  height: 4px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #ffe9a8, #ffb23d);
+  box-shadow: 0 0 2px rgba(255, 178, 61, 0.8);
+  animation: cat-eyes-look 6s ease-in-out infinite;
+}
+
+@keyframes cat-eyes-look {
+  0%,
+  8% {
+    translate: -50% -50%;
+  }
+  20%,
+  35% {
+    translate: calc(-50% - 1.4px) -50%;
+  }
+  50%,
+  58% {
+    translate: -50% -50%;
+  }
+  70%,
+  85% {
+    translate: calc(-50% + 1.4px) -50%;
+  }
+  100% {
+    translate: -50% -50%;
+  }
+}
+
+/* 대화창(안내판) 타이핑이 끝난 뒤 문 정중앙에 문구 → 버튼 순서로 하나씩
+   디졸브 노출된다. 가운데 정렬은 이 래퍼가 맡는다 — 그래야 버튼 자체의
+   transform은 :active 눌림 효과 전용으로 남겨둘 수 있다 (예전에는 정렬용
+   translate와 :active의 translateY가 서로 덮어써서 누르는 순간 버튼 위치가
+   틀어지는 버그가 있었다).
+   문구/버튼을 hidden(display:none)으로 껐다 켜면 래퍼의 전체 높이가 그때그때
+   바뀌면서 가운데 정렬 기준이 매번 재계산돼 위치가 흔들린다. 그래서 두
+   요소를 처음부터 항상 레이아웃에 넣어 두고(자리만 차지, 투명), opacity로만
+   보였다 안 보였다 하게 해서 버튼이 항상 문구 바로 아래 고정된 자리에 뜨게
+   한다. */
+.door-cta {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 버튼.png(432x167)를 그대로 배경으로 쓴다. .btn-primary의 각진 픽셀
+   버튼 스타일(clip-path·box-shadow)은 이 버튼만 지우고 이미지로 대체. */
+/* 버튼.png(432x167)를 배경으로 쓰는 공용 스타일. .btn-primary의 각진 픽셀
+   버튼 스타일(clip-path·box-shadow)은 여기서 이미지로 대체한다. */
+.plaque-btn {
+  padding: 0 var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  clip-path: none;
+  box-shadow: none;
+  background: url("assets/images/버튼.png") center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+  transition: filter 0.1s ease;
+}
+
+.plaque-btn:active {
+  /* .btn-primary:active가 background/box-shadow를 픽셀버튼용 값으로
+     덮어쓰므로, 이 버튼은 다시 이미지 배경 유지 + 그림자 제거로 되돌린다. */
+  background: url("assets/images/버튼.png") center / 100% 100% no-repeat;
+  box-shadow: none;
+  filter: brightness(0.8);
+  transform: translateY(2px);
+}
+
+/* '들어가기'/'전달하기' 둘 다 같은 크기의 명패를 쓴다. */
+.plaque-btn-size {
+  width: clamp(160px, 45vw, 220px);
+  aspect-ratio: 432 / 167;
+  min-height: 0;
+  min-width: 0;
+}
+
+.door-enter-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.door-enter-btn.is-visible {
+  pointer-events: auto;
+  animation: dissolve-in 0.6s ease forwards;
+}
+
+@keyframes dissolve-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- ROOM ---------- */
+
+/* 캐릭터·입력 영역은 테두리의 "창"(--frame-win-*) 안에만 있어야 하므로,
+   이 화면만 하단 padding을 창 바로 아래(안내판 시작 지점)까지로 좁힌다. */
+.screen-room {
+  padding-bottom: 46.67%;
+}
+
+/* 테두리의 "창"(--frame-win-*)을 꽉 채우는 방 배경. door-stage와 같은
+   패턴: 원본 비율 유지하며 object-fit:cover로 채운다. */
+.room-stage {
+  position: absolute;
+  top: var(--frame-win-top);
+  left: var(--frame-win-left);
+  width: var(--frame-win-width);
+  height: var(--frame-win-height);
+  z-index: 0;
+  overflow: hidden;
+}
+
+.room-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  image-rendering: pixelated;
+}
+
+/* 전달하기를 누르면 방 배경/캐릭터 위로 이 장면이 떠오른다. */
+.cauldron-bg {
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cauldron-bg.is-visible {
+  animation: dissolve-in 0.6s ease forwards;
+}
+
+/* 메모지를 드래그해서 솥과 겹치는 동안 "여기 넣을 수 있다"는 피드백.
+   이미지 색 자체는 그대로 두고, 냄비 실루엣(그림을 픽셀 단위로 실측해
+   좌표를 딴 것)을 따라 테두리 선만 표시한다. viewBox가 0~100이라
+   path의 좌표가 곧 이미지 가로/세로 퍼센트값이다. */
+.cauldron-target-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.cauldron-target-outline-path {
+  fill: none;
+  stroke: #fff3c2;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 6 5;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgba(255, 243, 194, 0.9));
+}
+
+.cauldron-target-outline.is-active {
+  opacity: 1;
+  animation: cauldron-outline-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes cauldron-outline-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 소멸 연출 공통: 종이가 닿는 순간 냄비 자체도 짧게 반응하는 느낌을 준다. */
+.cauldron-bg.impact-pulse {
+  animation: cauldron-impact-pulse 0.35s ease-out forwards;
+}
+
+/* opacity를 매 keyframe에 명시하지 않으면, 이 애니메이션이 기존
+   dissolve-in의 forwards로 유지되던 opacity:1을 덮어써서 냄비가 순간
+   투명해지는 버그가 생긴다(이 프로젝트에서 이미 한 번 겪은 패턴). */
+@keyframes cauldron-impact-pulse {
+  0% {
+    filter: brightness(1) saturate(1);
+    opacity: 1;
+  }
+  30% {
+    filter: brightness(1.6) saturate(1.35);
+    opacity: 1;
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+    opacity: 1;
+  }
+}
+
+/* 냄비 그림 속 반짝임(솥 위로 떠오르는 마법 기운)과 촛불에 은은한 생동감을
+   더한다. 그림 자체는 정적이라, 실측한 좌표 위에 겹쳐서 냄비가 보일 때만
+   (형제 선택자로 .cauldron-bg.is-visible을 감지) 함께 나타난다. */
+.cauldron-glow-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.cauldron-bg.is-visible ~ .cauldron-glow-fx {
+  opacity: 1;
+}
+
+/* 그림 속 마법 기운은 문/방의 금빛·분홍빛 반짝임과 달리 보라 계열이라
+   (실측 색상), 같은 트윈클 애니메이션에 색만 다르게 얹는다. */
+.sparkle-violet {
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #ddb8ff 35%,
+    rgba(150, 100, 230, 0) 75%
+  );
+}
+
+/* 촛불도 마법 기운과 같은 보라/자홍 계열로 타오르는 그림이라(실측 색상),
+   방 램프(room-lamp-glow)의 은은한 breathe 애니메이션은 그대로 재사용하고
+   색만 덮어쓴다. */
+.cauldron-candle-glow {
+  width: 11%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(250, 130, 210, 0.6) 40%,
+    rgba(190, 110, 250, 0.35) 65%,
+    rgba(150, 90, 220, 0) 80%
+  );
+}
+
+/* 드래그해서 냄비에 넣는 작은 메모지. left/top(px, JS가 채움)으로 위치를
+   옮기고, 드래그 중에는 transition을 꺼서 포인터를 바로 뒤따르다가, 손을
+   놓으면(.dragging 제거) 다시 transition이 붙어 원위치로 부드럽게
+   돌아가거나(ease-out) 냄비 투입 연출로 이어진다. */
+.drag-memo {
+  position: absolute;
+  left: 16%;
+  top: 60%;
+  width: clamp(46px, 14vw, 68px);
+  height: auto;
+  z-index: 4;
+  opacity: 0;
+  touch-action: none;
+  cursor: grab;
+  image-rendering: pixelated;
+  /* <img>의 브라우저 기본 드래그(네이티브 이미지 드래그)가 끼어들면
+     Pointer Events 시퀀스가 pointercancel로 끊긴다. HTML draggable="false"와
+     함께 이중으로 막아둔다. */
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: left 0.4s ease-out, top 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.drag-memo.is-visible {
+  animation: dissolve-in 0.5s ease forwards;
+}
+
+.drag-memo.dragging {
+  cursor: grabbing;
+  transition: none;
+  z-index: 5;
+}
+
+/* 소멸 연출 A(불티 상승): 종이가 통통 튀듯(살짝 커졌다 작아졌다) 하며
+   0으로 줄어든다. 드래그 중 남아있던 인라인 rotate 값은 이 애니메이션이
+   transform을 다시 정의하는 동안 무시된다(의도한 동작). */
+.drag-memo.ember-bounce {
+  transition: none;
+  animation: ember-bounce-shrink 0.5s ease-in forwards;
+}
+
+@keyframes ember-bounce-shrink {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.55);
+    opacity: 1;
+  }
+  72% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* 소멸 연출 B(터뜨리기): 종이가 한 점으로 빨려들어가듯 곧장(바운스 없이
+   가속하며) 줄어든다. A의 통통 튀는 느낌과 대비되는, 더 급하고 짧은
+   느낌을 주기 위해 ease-in만 쓰고 overshoot은 넣지 않는다. */
+.drag-memo.burst-suck {
+  transition: none;
+  animation: burst-suck-in 0.3s ease-in forwards;
+}
+
+@keyframes burst-suck-in {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* 소멸 연출 B 전용: 터지는 순간 화면이 아주 짧게 흔들리는 임팩트.
+   #app은 position:relative라 top/left로 흔들면(transform이 아니라서)
+   내부의 position:fixed 캔버스(파티클)가 뜻하지 않게 #app 기준으로
+   다시 위치잡히는 부작용 없이 안전하게 흔들 수 있다. */
+#app.screen-shake {
+  animation: app-shake 0.16s ease-in-out;
+}
+
+@keyframes app-shake {
+  0%,
+  100% {
+    left: 0;
+    top: 0;
+  }
+  20% {
+    left: -6px;
+    top: 4px;
+  }
+  40% {
+    left: 6px;
+    top: -4px;
+  }
+  60% {
+    left: -4px;
+    top: 3px;
+  }
+  80% {
+    left: 4px;
+    top: -3px;
+  }
+}
+
+/* 소멸 연출 공통: 종이가 냄비에 닿는 순간 잠깐 밝게 터지는 빛. 냄비 입구
+   실측 좌표(50%, 63%)에 고정해두고 효과마다 재사용한다. */
+.destroy-flash {
+  position: absolute;
+  left: 50%;
+  top: 63%;
+  width: 14%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 253, 240, 0.95) 0%,
+    rgba(255, 220, 140, 0.55) 45%,
+    rgba(255, 220, 140, 0) 75%
+  );
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.destroy-flash.flashing {
+  animation: destroy-flash-pop 0.45s ease-out forwards;
+}
+
+@keyframes destroy-flash-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
+}
+
+.room-particle-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* 마법사 캐릭터를 방 우측 하단에 고정. 원본 비율 유지, 창 밖으로 나가는
+   부분은 room-stage의 overflow:hidden이 정리해준다. */
+.room-character {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42%;
+  height: auto;
+  z-index: 1;
+  image-rendering: pixelated;
+  opacity: 0;
+}
+
+.room-character.is-visible {
+  animation: dissolve-in 0.6s ease forwards;
+}
+
+/* 종이는 이 앱에서 유일하게 테두리(#app) 밖으로 걸쳐 보여야 하는 요소라,
+   #app 안에 두면 #app의 overflow:hidden에 잘려버린다. 그래서 #app 밖,
+   뷰포트 전체를 덮는 별도 레이어(#memo-overlay)에 둔다. #app과 똑같이
+   body의 flex 중앙 정렬을 그대로 받기 때문에 카드와 같은 중심에 겹친다. */
+.memo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* #app 카드 자체보다 조금 더 크게 잡아서, 테두리 가장자리 밖으로 종이가
+   삐져나와 보이게 한다. 이미지 자체 비율(871:1091)은 유지. */
+.memo-stage {
+  position: relative;
+  flex-shrink: 0;
+  width: min(552px, 112vw, 96dvh);
+  aspect-ratio: 871 / 1091;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.memo-stage.is-visible {
+  animation: dissolve-in 0.6s ease forwards;
+  pointer-events: auto;
+}
+
+.memo-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+
+/* 설정 버튼: 테두리 그림에 이미 그려진 왼쪽 아래 책 위에 보이지 않는
+   클릭 영역만 얹는다(좌표는 --book-*, 픽셀 단위로 실측). 화면이 바뀌어도
+   (온보딩/방/결과) 테두리는 항상 같은 자리라 #app의 직계 자식으로 딱
+   하나만 둔다.
+   z-index는 memo-overlay(종이, 200)보다 높아야 한다 — 종이를 쓰는 중에도
+   이 버튼은 항상 눌러야 하는데, 종이 카드가 화면 아래 구석까지 넓게
+   걸쳐 있어서 낮은 z-index로 두면 종이에 클릭이 가로채인다. */
+.btn-settings-book {
+  position: absolute;
+  left: var(--book-left);
+  top: var(--book-top);
+  width: var(--book-width);
+  height: var(--book-height);
+  z-index: 210;
+  box-sizing: border-box;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* 책과 살짝 겹치게 놓는 작은 타이틀 캡션. 책 아래로는 카드 가장자리까지
+   여백이 거의 없어서(실측상 2% 미만), 책 자체의 아래쪽과 겹쳐서 놓는다.
+   글자가 책 그림 위에서도 읽히도록 흰 글자 + 진한 그림자를 쓴다. 버튼
+   클릭을 가로막지 않도록 pointer-events는 꺼둔다. */
+.settings-book-label {
+  position: absolute;
+  left: calc(var(--book-left) + var(--book-width) / 2);
+  top: calc(var(--book-top) + var(--book-height) * 0.68);
+  transform: translateX(-50%);
+  margin: 0;
+  z-index: 211;
+  font-size: clamp(9px, 2.2vw, 11px);
+  color: #fff;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.95), 0 0 1px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 종이(memo-overlay)는 z-index가 이 라벨보다 낮지만, 종이 카드 자체가
+   화면 아래 구석까지 넓게 걸쳐 있어서 라벨이 종이 위에 그대로 떠 보인다.
+   종이를 쓰는 동안은 이 텍스트만 숨긴다(설정 버튼 자체는 계속 눌린다). */
+.settings-book-label.is-hidden {
+  display: none;
+}
+
+/* 효과음/배경음 on-off 토글: 한 줄에 나란히 놓인다(라벨 - 슬라이드 스위치
+   - 별 장식 순서). 슬라이드 스위치는 언어 토글과 같은 "알약 안에서 움직이는
+   손잡이" 원리를 쓰되, 두 선택지가 아니라 하나의 on/off라서 손잡이가
+   좌우 끝을 오간다. */
+.sound-toggles-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sound-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sound-toggle-label {
+  flex: 1;
+  min-width: 0;
+  color: #2c1e3d;
+  font-family: inherit;
+  /* 설정 페이지 안의 글자 크기는 모두 "한국어" 버튼(.lang-toggle-option)
+     기준으로 통일한다. 영어("Sound Effects"/"Background Music")는 폭이
+     좁으면 한 줄에 안 들어가므로, nowrap 대신 줄바꿈을 허용해 토글과
+     겹치지 않게 한다. */
+  font-size: clamp(13px, 3.4vw, 15px);
+  line-height: 1.15;
+  white-space: normal;
+}
+
+/* 토글 색은 언어 선택 토글(.lang-toggle-thumb)과 같은 보라색 계열로
+   맞춘다 — off일 때는 옅은 보라(.lang-toggle의 트랙 색과 같은 계열, 대비를
+   위해 좀 더 진하게), on일 때는 언어 토글의 활성 알약과 같은 보라(#6b5b95). */
+.sound-toggle {
+  --toggle-h: clamp(20px, 5.6vw, 24px);
+  position: relative;
+  flex-shrink: 0;
+  width: clamp(46px, 13vw, 56px);
+  height: var(--toggle-h);
+  border: none;
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(44, 30, 61, 0.35);
+  transition: background 0.15s ease;
+}
+
+.sound-toggle.is-on {
+  background: #6b5b95;
+}
+
+.sound-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(var(--toggle-h) - 4px);
+  height: calc(var(--toggle-h) - 4px);
+  border-radius: 50%;
+  background: #fff8ec;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: left 0.15s ease;
+}
+
+.sound-toggle.is-on .sound-toggle-knob {
+  left: calc(100% - 2px - (var(--toggle-h) - 4px));
+}
+
+.sound-toggle-on-text,
+.sound-toggle-off-text {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  pointer-events: none;
+}
+
+.sound-toggle-on-text {
+  left: 5px;
+  color: #fff;
+}
+
+.sound-toggle-off-text {
+  right: 5px;
+  color: #f2eefa;
+}
+
+.sound-toggle.is-on .sound-toggle-on-text {
+  opacity: 1;
+}
+
+.sound-toggle:not(.is-on) .sound-toggle-off-text {
+  opacity: 1;
+}
+
+/* 의견 보내기: primary(plaque) 버튼이 아니라, 설정 창 안의 다른 UI(언어
+   토글 등)와 톤을 맞춘 단순한 버튼. 외부 설문 링크를 새 탭으로 연다. */
+.settings-feedback-btn {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  text-align: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(44, 30, 61, 0.1);
+  color: #2c1e3d;
+  font-family: inherit;
+  font-size: clamp(13px, 3.4vw, 15px);
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.1s ease;
+}
+
+.settings-feedback-btn:hover {
+  filter: brightness(0.95);
+}
+
+.settings-feedback-btn:active {
+  filter: brightness(0.9);
+}
+
+/* 설정 창: 언어를 바꿀 수 있는 작은 모달. 종이(memo-overlay)와 같은 이유로
+   #app의 overflow:hidden에 잘리지 않도록 #app 밖에 둔다. */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-overlay.hidden {
+  display: none;
+}
+
+/* 설정UI.png(1391x1131)를 그대로 창 배경으로 쓴다. 화면 폭에 맞춰
+   반응형으로 줄어들되, 비율은 이미지 원본 그대로 유지한다. 안쪽 내용은
+   전부 이 비율 기준 퍼센트로 배치해서(이미지를 픽셀 단위로 실측한 값)
+   창 크기가 달라져도 그림의 장식(테두리·상단 리본·오른쪽 위 닫기 아이콘)
+   과 겹치지 않게 한다. */
+.settings-panel {
+  position: relative;
+  width: min(380px, 88vw);
+  aspect-ratio: 1391 / 1131;
+}
+
+.settings-panel-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* 그림 자체에 닫기(X) 아이콘이 이미 그려져 있어서, 그 위치에 보이지 않는
+   클릭 영역만 얹는다. */
+.settings-close {
+  position: absolute;
+  left: 87%;
+  top: 11%;
+  width: 12%;
+  height: 13%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* 리본 장식의 평평한 안쪽 칸에 맞춘다. 실측해보니 리본 테두리 장식 때문에
+   "칸처럼 보이는 영역"과 "실제 순수 배경색만 있는 안쪽 칸"이 달라서(위쪽
+   장식 테두리가 생각보다 두꺼움), 렌더링된 화면에서 직접 다시 측정해
+   중앙값을 잡았다. "Settings"처럼 긴 문구도 한 줄로 들어가도록 폭 대비
+   글자 크기를 넉넉히 낮춰뒀다. */
+.settings-title {
+  position: absolute;
+  left: 50%;
+  top: 13%;
+  transform: translate(-50%, -50%);
+  width: 30%;
+  margin: 0;
+  /* 설정 페이지 안의 글자 크기는 모두 "한국어" 버튼(.lang-toggle-option)
+     기준으로 통일한다. */
+  font-size: clamp(13px, 3.4vw, 15px);
+  line-height: 1.1;
+  text-align: center;
+  color: #f2eaff;
+  white-space: nowrap;
+}
+
+.settings-body {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 25%;
+  bottom: 8%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* 가운데 정렬 대신 위에서부터 순서대로 쌓이도록 정렬하고, 맨 위 요소는
+     이 박스 top(25%)에서 20px 더 내려온 자리에서 시작한다. */
+  justify-content: flex-start;
+  padding-top: 20px;
+  gap: var(--space-4);
+}
+
+/* 언어 토글: 두 옵션을 나란히 두고, 선택된 쪽 뒤로 알약 모양 배경이
+   슬라이드하며 이동한다. 기본(초기 HTML) 상태는 한국어. */
+.lang-toggle {
+  position: relative;
+  width: 100%;
+  display: flex;
+  border-radius: 999px;
+  background: rgba(44, 30, 61, 0.12);
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+.lang-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
+  border-radius: 999px;
+  background: #6b5b95;
+  transition: transform 0.2s ease;
+}
+
+.lang-toggle.is-en .lang-toggle-thumb {
+  transform: translateX(100%);
+}
+
+.lang-toggle-option {
+  position: relative;
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 8px 0;
+  font-family: inherit;
+  font-size: clamp(13px, 3.4vw, 15px);
+  color: #2c1e3d;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.lang-toggle-option.is-active {
+  color: #fff;
+}
+
+/* 대화창: 테두리 그림에 이미 그려진 하단 안내판(--frame-panel-*) 위에 그대로
+   얹는다. 안내판 자체가 배경이 되므로 이 요소는 배경/테두리 없이 텍스트만
+   놓는 투명 레이어다. 안쪽 padding은 안내판의 장식(기둥·테두리)과 겹치지
+   않는 안전 영역만큼 넉넉히 둔다. */
+.dialog-box {
+  position: absolute;
+  left: var(--frame-panel-left);
+  top: var(--frame-panel-top);
+  width: var(--frame-panel-width);
+  height: var(--frame-panel-height);
+  /* .app-frame(테두리 이미지, 안내판의 분홍 배경 포함)이 z-index:50이라
+     그보다 높아야 텍스트가 안내판 위에 보인다. */
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  /* padding %는 (top/bottom도 포함해) 항상 컨테이닝 블록의 "너비" 기준이라,
+     안내판 자기 너비/높이 기준으로 환산했다. 글자가 더 많이 보이도록 위·양옆
+     여백만 살짝 줄임(원래 7%·12%·16% 기준 → 5%·8%·16%). */
+  padding: 2.48% 5.77% 4.95%;
+  cursor: pointer;
+  color: #2c1e3d;
+  text-align: left;
+}
+
+.dialog-text {
+  margin: 0;
+  font-size: 17px;
+  /* 배수(1.5)가 아니라 px 고정값을 쓴다 — 배수로 두면 안에 들어가는 다음-
+     힌트 화살표(font-size가 다름)의 줄 높이가 이 문구와 달라져서, 화살표가
+     나타나는 순간 그 줄(과 그 줄의 글자)의 위치가 미묘하게 움직인다. */
+  line-height: 25.5px;
+  white-space: pre-wrap;
+}
+
+/* 한 번 완주해서 모든 대사를 본 뒤 다시 시작할 때만 나타나는 Skip 버튼.
+   예전에 톱니바퀴 설정 버튼이 있던 자리(왼쪽 아래 구석)로 옮겨서, 설정
+   버튼이 책으로 옮겨간 뒤 빈 자리를 대신 채운다. */
+.dialog-skip-btn {
+  display: none;
+  position: absolute;
+  left: calc(var(--frame-panel-left) + 9%);
+  top: calc(var(--frame-panel-top) + var(--frame-panel-height) - 9%);
+  height: 34px;
+  box-sizing: border-box;
+  z-index: 210;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgba(44, 30, 61, 0.75);
+  font-family: inherit;
+  font-size: clamp(13px, 3vw, 15px);
+  cursor: pointer;
+}
+
+.dialog-skip-btn:hover {
+  color: #2c1e3d;
+}
+
+.dialog-skip-btn.is-visible {
+  display: flex;
+}
+
+/* 타이핑이 끝났을 때만 보이는, 다음 대화로 넘어갈 수 있음을 암시하는
+   깜빡이는 화살표. 문구 바로 옆(끝나는 지점)에 인라인으로 붙는다. */
+.dialog-next-hint {
+  display: inline-block;
+  margin-left: 0.3em;
+  font-size: clamp(14px, 3.2vw, 18px);
+  /* .dialog-text와 정확히 같은 고정 줄 높이 — 화살표 폰트가 더 커도 이
+     줄의 높이가 늘어나 글자 위치가 움직이지 않게 한다. */
+  line-height: 25.5px;
+  color: #2c1e3d;
+  animation: hint-blink 1.1s ease-in-out infinite;
+}
+
+/* display를 위에서 항상 지정해두면 hidden 속성의 기본 동작(display:none)을
+   덮어써서 안 먹는다. hidden일 때는 명시적으로 꺼준다. */
+.dialog-next-hint[hidden] {
+  display: none;
+}
+
+@keyframes hint-blink {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+}
+
+.input-area {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.input-area[hidden] {
+  display: none;
+}
+
+/* 종이 그림에서 실제로 빈 여백인 영역(실측 좌표)에만 입력창을 얹어서
+   "종이에 직접 쓰는" 느낌을 낸다. 종이가 #app 밖 별도 레이어라 더 이상
+   안내판과 겹칠 걱정이 없으므로, 여백 끝까지(실측 안전 영역 전체) 채운다.
+   빈 여백은 세로로 약 7%~86.5% 구간까지 있지만(픽셀 단위로 실측), 박스를
+   그 한계까지 키우면 웬만한 길이의 글은 넘치지 않아 스크롤이 아예 안
+   생긴다(의도한 "길면 스크롤" 동작이 사라짐). 그래서 일부러 그보다 낮게
+   잡아, 보통 분량보다 조금만 길어져도 자연스럽게 스크롤이 생기게 한다. */
+.memo-writable {
+  position: absolute;
+  left: 24%;
+  top: 8%;
+  width: 62%;
+  height: 77%;
+}
+
+.input-text {
+  width: 100%;
+  resize: none;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-surface-2);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: clamp(14px, 3.8vw, 16px);
+  min-height: calc(var(--touch-min) * 2);
+}
+
+.input-text:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* 종이 위에 직접 쓰는 느낌을 위해, 텍스트 입력 칸은 배경/테두리 없이
+   투명하게 만들고 글자색만 종이 위에서 잘 보이는 짙은 색으로 바꾼다. */
+.memo-textarea {
+  flex: 1;
+  min-height: 0;
+  background: transparent;
+  border: none;
+  color: #2c1e3d;
+  /* 내용이 영역보다 길어지면 위아래 스크롤로 확인할 수 있게 한다. */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.memo-textarea::placeholder {
+  color: rgba(44, 30, 61, 0.5);
+}
+
+.memo-textarea:focus {
+  border-color: transparent;
+}
+
+/* input-area는 기본 align-items:stretch라 버튼이 폭 100%로 늘어난다.
+   "돌아가기"(.btn-primary 기본 크기)와 같은 크기로 보이도록, 늘어나지
+   않고 내용물 크기에 맞게(auto) 가운데 정렬한다. */
+#btn-submit {
+  /* input-area의 기본 align-items:stretch를 취소해서, 폭이 늘어나지 않고
+     .plaque-btn-size가 정한 고정 크기(들어가기와 동일)를 그대로 쓰게 한다. */
+  align-self: center;
+  /* 최소 글자 수를 채우기 전에는 숨겨두고, 채우면 디졸브로 노출한다. */
+  opacity: 0;
+  pointer-events: none;
+}
+
+#btn-submit.is-visible {
+  animation: dissolve-in 0.6s ease forwards;
+  pointer-events: auto;
+}
+
+/* "전달하기" 버튼과 같은 타이밍에 나타나는 안내 문구. 버튼 아래 캡션처럼
+   작고 옅은 색으로 둔다. */
+.submit-notice {
+  margin: 0;
+  color: rgba(44, 30, 61, 0.55);
+  font-size: clamp(11px, 2.8vw, 13px);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.submit-notice.is-visible {
+  animation: dissolve-in 0.6s ease forwards;
+}
+
+.input-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: clamp(12px, 3vw, 14px);
+  text-align: left;
+}
+
+/* ---------- DESTROY ---------- */
+
+.destroy-text-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  min-height: 3em;
+}
+
+.destroy-text-half {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  font-size: clamp(14px, 3.8vw, 17px);
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.destroy-text-top {
+  clip-path: inset(0 0 50% 0);
+}
+
+.destroy-text-bottom {
+  clip-path: inset(50% 0 0 0);
+}
+
+.destroy-text-wrap.tearing .destroy-text-top {
+  animation: tear-up 0.6s ease-in forwards;
+}
+
+.destroy-text-wrap.tearing .destroy-text-bottom {
+  animation: tear-down 0.6s ease-in forwards;
+}
+
+@keyframes tear-up {
+  to {
+    transform: translate(-8%, -70%) rotate(-10deg);
+    opacity: 0;
+  }
+}
+
+@keyframes tear-down {
+  to {
+    transform: translate(8%, 70%) rotate(10deg);
+    opacity: 0;
+  }
+}
+
+#particle-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+/* ---------- RESULT ---------- */
+
+/* 문구는 그대로 창(--frame-win-*) 한가운데, 버튼("다른 이야기")은 하단
+   대화창 패널(--frame-panel-*) 안에 보이도록 둘을 분리했다. #screen-result
+   자체는 기본 .screen(inset:0, #app 전체)을 그대로 쓰고, 그 안에서 두 영역을
+   각자 테두리 그림 기준 좌표로 절대 배치한다. */
+#screen-result {
+  padding: 0;
+}
+
+.result-window {
+  position: absolute;
+  top: var(--frame-win-top);
+  left: var(--frame-win-left);
+  width: var(--frame-win-width);
+  height: var(--frame-win-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6%;
+  box-sizing: border-box;
+}
+
+.result-message {
+  font-size: clamp(15px, 4vw, 19px);
+  line-height: 1.6;
+  max-width: 340px;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.result-panel {
+  position: absolute;
+  top: var(--frame-panel-top);
+  left: var(--frame-panel-left);
+  width: var(--frame-panel-width);
+  height: var(--frame-panel-height);
+  z-index: 51;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
