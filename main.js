@@ -93,7 +93,6 @@ const sceneVeil = document.getElementById("scene-veil");
 const btnEnter = document.getElementById("btn-enter");
 const onboardingDialogBox = document.getElementById("onboarding-dialog-box");
 const onboardingDialogText = document.getElementById("onboarding-dialog-text");
-const onboardingPrivacyNotice = document.getElementById("onboarding-privacy-notice");
 const imgDoor = document.getElementById("door");
 const imgDoorVoid = document.getElementById("door-void");
 const imgDoorLeaf = document.getElementById("door-leaf");
@@ -186,7 +185,6 @@ function applyLanguage(lang) {
   inputText.placeholder = t.inputPlaceholder;
   inputError.textContent = t.inputError;
   submitNotice.textContent = t.submitNotice;
-  onboardingPrivacyNotice.textContent = t.onboardingPrivacyNotice;
 
   imgDoor.alt = t.doorAlt;
   imgRoom.alt = t.roomAlt;
