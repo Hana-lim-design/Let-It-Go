@@ -1,5 +1,5 @@
 import { ASSETS } from "./assets.js";
-import { burstFromRect, emitPoofSmoke, emitEmberRise, emitBurst, emitLightOverflow } from "./particles.js";
+import { burstFromRect, emitEmberRise, emitBurst, emitLightOverflow } from "./particles.js";
 import { createDialogueBox, createTypewriter } from "./dialogue.js";
 import { STRINGS } from "./i18n.js";
 import {
@@ -131,11 +131,6 @@ imgMemo.src = ASSETS.memo;
 imgCauldron.src = ASSETS.cauldron;
 dragMemo.src = ASSETS.dragMemo;
 settingsPanelBg.src = ASSETS.settingsPanel;
-
-// 연기 파티클은 <img> 태그가 아니라 캔버스에 직접 그려야 해서, 별도로
-// 미리 로드해둔다(냄비 장면까지 도달하기 전에 충분히 로드될 시간이 있다).
-const smokeImage = new Image();
-smokeImage.src = ASSETS.smoke;
 
 let current = STATE.ONBOARDING;
 

@@ -11,9 +11,6 @@ export const ASSETS = {
   memo: "./assets/images/memo-blank.png",
   cauldron: "./assets/images/cauldron-bg.png",
   worryPaper: "./assets/images/worry-paper.png",
-  // 이 파일은 아직 실제로 없다(기존부터 있던 갭). smoke 효과를 쓰려면
-  // 이 경로에 이미지를 추가해야 한다.
-  smoke: "./assets/images/smoke.png",
   dragMemo: "./assets/images/memo-drag.png",
   settingsPanel: "./assets/images/settings-panel.png",
 };
