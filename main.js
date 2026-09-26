@@ -14,6 +14,7 @@ import {
   isBgmMuted,
   resumeAudioContext,
 } from "./sound.js";
+import { getStats, recordVisit, recordStory, scheduleMidnightReset } from "./stats.js";
 
 initSounds();
 
@@ -73,6 +74,12 @@ const settingsMuteSfxLabel = document.getElementById("settings-mute-sfx-label");
 const btnMuteBgm = document.getElementById("btn-mute-bgm");
 const settingsMuteBgmLabel = document.getElementById("settings-mute-bgm-label");
 const btnFeedback = document.getElementById("btn-feedback");
+const btnFeedbackPotion = document.getElementById("btn-feedback-potion");
+const feedbackPotionLabel = document.getElementById("feedback-potion-label");
+const statTodayEl = document.getElementById("stat-today");
+const statTotalEl = document.getElementById("stat-total");
+const statStoriesEl = document.getElementById("stat-stories");
+const visitStatsEl = document.getElementById("visit-stats");
 const settingsOverlay = document.getElementById("settings-overlay");
 const settingsPanelBg = document.getElementById("settings-panel-bg");
 const btnSettingsClose = document.getElementById("btn-settings-close");
@@ -86,6 +93,7 @@ const sceneVeil = document.getElementById("scene-veil");
 const btnEnter = document.getElementById("btn-enter");
 const onboardingDialogBox = document.getElementById("onboarding-dialog-box");
 const onboardingDialogText = document.getElementById("onboarding-dialog-text");
+const onboardingPrivacyNotice = document.getElementById("onboarding-privacy-notice");
 const imgDoor = document.getElementById("door");
 const imgDoorVoid = document.getElementById("door-void");
 const imgDoorLeaf = document.getElementById("door-leaf");
@@ -152,6 +160,25 @@ function setState(next) {
 let currentLang = "ko";
 let onboardingTypewriter = null;
 
+// 방문/이야기 횟수. localStorage에서 읽어온 값을 들고 있다가, 이벤트가
+// 생길 때마다(들어가기 클릭/소멸 애니메이션 실행) 갱신하고 화면도 즉시
+// 다시 그린다.
+let visitStats = getStats();
+
+function renderStats() {
+  const t = STRINGS[currentLang];
+  statTodayEl.textContent = `${t.statTodayLabel} ${visitStats.today}`;
+  statTotalEl.textContent = `${t.statTotalLabel} ${visitStats.total}`;
+  statStoriesEl.textContent = `${t.statStoriesLabel} ${visitStats.stories}`;
+}
+
+// 탭을 자정 너머로 계속 켜둔 채로 있어도, 새로고침 없이 Today가 0으로
+// 바로 반영되게 한다.
+scheduleMidnightReset((stats) => {
+  visitStats = stats;
+  renderStats();
+});
+
 function applyLanguage(lang) {
   currentLang = lang;
   const t = STRINGS[lang];
@@ -164,6 +191,7 @@ function applyLanguage(lang) {
   inputText.placeholder = t.inputPlaceholder;
   inputError.textContent = t.inputError;
   submitNotice.textContent = t.submitNotice;
+  onboardingPrivacyNotice.textContent = t.onboardingPrivacyNotice;
 
   imgDoor.alt = t.doorAlt;
   imgRoom.alt = t.roomAlt;
@@ -179,6 +207,9 @@ function applyLanguage(lang) {
   settingsBookLabel.textContent = t.settingsTitle;
   btnDialogSkip.textContent = t.skipButtonLabel;
   btnFeedback.textContent = t.feedbackLabel;
+  btnFeedbackPotion.setAttribute("aria-label", t.feedbackLabel);
+  feedbackPotionLabel.textContent = t.feedbackTitle;
+  renderStats();
 
   const isEn = lang === "en";
   langToggle.classList.toggle("is-en", isEn);
@@ -329,6 +360,8 @@ btnEnter.addEventListener("click", () => {
   if (screenOnboarding.classList.contains("opening")) return;
   screenOnboarding.classList.add("opening");
   playSound("doorCreak");
+  visitStats = recordVisit();
+  renderStats();
   setTimeout(() => {
     // 문이 다 열린 뒤: 문 안쪽으로 빨려들어가듯 확대 + 서서히 암전
     doorStage.classList.add("zooming");
@@ -348,6 +381,8 @@ btnEnter.addEventListener("click", () => {
       imgWizard.classList.remove("is-visible");
       memoStage.classList.remove("is-visible");
       settingsBookLabel.classList.remove("is-hidden");
+      feedbackPotionLabel.classList.remove("is-hidden");
+      visitStatsEl.classList.remove("is-hidden");
       imgCauldron.classList.remove("is-visible");
       resetDragMemo();
       dialogAdvanceLocked = false;
@@ -384,6 +419,8 @@ function revealMemoStage() {
   playStoppable("paperAppear");
   setTimeout(() => stopLoop("paperAppear"), PAPER_APPEAR_ANIM_MS);
   settingsBookLabel.classList.add("is-hidden"); // 종이 위에 겹쳐 보이지 않게
+  feedbackPotionLabel.classList.add("is-hidden");
+  visitStatsEl.classList.add("is-hidden");
   setTimeout(() => {
     inputArea.hidden = false;
   }, MEMO_REVEAL_STAGGER_MS);
@@ -755,6 +792,8 @@ function handleMemoDropSuccess() {
   // 드래그가 성공한 순간부터 결과 화면으로 넘어가기 전까지, 안내 문구
   // 대신 이 문구를 계속 보여준다(dialogAdvanceLocked라 탭해도 안 바뀐다).
   dialogText.textContent = STRINGS[currentLang].afterDropMessage;
+  visitStats = { ...visitStats, stories: recordStory() };
+  renderStats();
   const effect = destroyEffects[Math.floor(Math.random() * destroyEffects.length)];
   effect(() => enterResult());
 }
@@ -763,6 +802,8 @@ function handleMemoDropSuccess() {
 function showCauldron() {
   memoStage.classList.remove("is-visible");
   settingsBookLabel.classList.remove("is-hidden");
+  feedbackPotionLabel.classList.remove("is-hidden");
+  visitStatsEl.classList.remove("is-hidden");
   imgCauldron.classList.add("is-visible");
   // 성공적으로 드래그해 넣기 전까지(handleMemoDropSuccess에서 멈춘다)
   // 부글부글 끓는 소리가 반복 재생된다.
@@ -800,6 +841,8 @@ btnSubmit.addEventListener("click", () => {
 
   memoStage.classList.remove("is-visible");
   settingsBookLabel.classList.remove("is-hidden");
+  feedbackPotionLabel.classList.remove("is-hidden");
+  visitStatsEl.classList.remove("is-hidden");
 
   // 마법사가 다시 등장하는 느낌을 주기 위해 디졸브 애니메이션을 새로 재생.
   imgWizard.classList.remove("is-visible");

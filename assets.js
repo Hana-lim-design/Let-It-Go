@@ -1,17 +1,19 @@
 // 이미지 경로를 한 곳에 모아둔다.
 // 나중에 미드저니 등으로 만든 실제 이미지로 바꿀 때는 이 파일의 경로 값만 수정하면 된다.
-// 지금은 실제 이미지가 없으므로 단색 SVG data URI를 임시 플레이스홀더로 사용한다.
+// 파일명은 배포(대소문자 구분 파일시스템) 호환을 위해 전부 영문 소문자+하이픈으로 통일했다.
 
 export const ASSETS = {
-  door: "./assets/images/마법사의배경.png",
-  doorLeaf: "./assets/images/문.png",
+  door: "./assets/images/door-bg.png",
+  doorLeaf: "./assets/images/door-leaf.png",
   doorVoid: "./assets/images/door-void.png",
-  room: "./assets/images/마법사의배경-2.png",
-  wizard: "./assets/images/마법사캐릭터.png",
-  memo: "./assets/images/법사메모최종.png",
-  cauldron: "./assets/images/마법사배경-냄비.png",
-  worryPaper: "./assets/images/고민종이.png",
-  smoke: "./assets/images/연기 1개.png",
-  dragMemo: "./assets/images/메모지.png",
-  settingsPanel: "./assets/images/설정UI.png",
+  room: "./assets/images/room-bg.png",
+  wizard: "./assets/images/wizard-character.png",
+  memo: "./assets/images/memo-blank.png",
+  cauldron: "./assets/images/cauldron-bg.png",
+  worryPaper: "./assets/images/worry-paper.png",
+  // 이 파일은 아직 실제로 없다(기존부터 있던 갭). smoke 효과를 쓰려면
+  // 이 경로에 이미지를 추가해야 한다.
+  smoke: "./assets/images/smoke.png",
+  dragMemo: "./assets/images/memo-drag.png",
+  settingsPanel: "./assets/images/settings-panel.png",
 };

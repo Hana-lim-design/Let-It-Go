@@ -4,6 +4,23 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Let it go</title>
+<meta name="description" content="마음속 이야기를 적어 마법사의 냄비에 흘려보내는 작은 힐링 경험." />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Let it go" />
+<meta property="og:description" content="마음속 이야기를 적어 마법사의 냄비에 흘려보내는 작은 힐링 경험." />
+<meta property="og:image" content="assets/og-image.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Let it go" />
+<meta name="twitter:description" content="마음속 이야기를 적어 마법사의 냄비에 흘려보내는 작은 힐링 경험." />
+<meta name="twitter:image" content="assets/og-image.png" />
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="assets/favicon.png" />
+
 <link
   rel="preload"
   href="assets/fonts/DungGeunMo.woff2"
@@ -50,6 +67,7 @@
       aria-label="건너뛰기"
     >
       <p id="onboarding-dialog-text" class="dialog-text"></p>
+      <p id="onboarding-privacy-notice" class="onboarding-privacy-notice">당신이 쓴 이야기는 어디에도 저장되지 않으며, 화면을 벗어나는 순간 사라집니다.</p>
     </div>
   </section>
 
@@ -154,6 +172,28 @@
        호버하면 클릭 가능하다는 걸 알 수 있도록 은은한 테두리가 뜬다. -->
   <button id="btn-settings" class="btn-settings-book" type="button" aria-label="설정"></button>
   <p id="settings-book-label" class="settings-book-label" aria-hidden="true">설정</p>
+
+  <!-- 테두리 그림 오른쪽 아래에 그려진 물약 장식 위에, 같은 방식으로 보이지
+       않는 클릭 영역만 얹어서 의견 보내기 창구로 쓴다(실측 좌표: --potion-*).
+       설정 안의 의견 보내기와 링크가 같고, 설정 버튼처럼 모든 화면에서 보인다. -->
+  <a
+    id="btn-feedback-potion"
+    class="btn-feedback-potion"
+    href="https://forms.gle/bE4NDXQmnFGEwSrW9"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="의견 보내기"
+  ></a>
+  <p id="feedback-potion-label" class="feedback-potion-label" aria-hidden="true">피드백</p>
+
+  <!-- 책과 물약 사이 빈 공간에 방문/이야기 횟수를 실시간으로 보여준다.
+       localStorage에 저장해서 새로고침해도 유지된다(걱정 내용 자체는
+       여전히 어디에도 저장하지 않는다 — 이건 단순 횟수 집계일 뿐). -->
+  <div id="visit-stats" class="visit-stats" aria-hidden="true">
+    <span id="stat-today" class="visit-stat"></span>
+    <span id="stat-total" class="visit-stat"></span>
+    <span id="stat-stories" class="visit-stat"></span>
+  </div>
 
   <button id="btn-dialog-skip" class="dialog-skip-btn" type="button">Skip</button>
 
