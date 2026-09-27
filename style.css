@@ -1216,6 +1216,14 @@ button {
   filter: brightness(0.9);
 }
 
+/* 의견 보내기 아래, 눈에 띄지 않게 작은 저작권 표기. */
+.settings-copyright {
+  margin: 0;
+  color: rgba(44, 30, 61, 0.5);
+  font-size: clamp(8px, 2vw, 10px);
+  text-align: center;
+}
+
 /* 설정 창: 언어를 바꿀 수 있는 작은 모달. 종이(memo-overlay)와 같은 이유로
    #app의 overflow:hidden에 잘리지 않도록 #app 밖에 둔다. */
 .settings-overlay {

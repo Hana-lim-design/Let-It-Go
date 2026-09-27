@@ -74,6 +74,7 @@ const settingsMuteSfxLabel = document.getElementById("settings-mute-sfx-label");
 const btnMuteBgm = document.getElementById("btn-mute-bgm");
 const settingsMuteBgmLabel = document.getElementById("settings-mute-bgm-label");
 const btnFeedback = document.getElementById("btn-feedback");
+const settingsCopyright = document.getElementById("settings-copyright");
 const btnFeedbackPotion = document.getElementById("btn-feedback-potion");
 const feedbackPotionLabel = document.getElementById("feedback-potion-label");
 const statTodayEl = document.getElementById("stat-today");
@@ -200,6 +201,7 @@ function applyLanguage(lang) {
   settingsBookLabel.textContent = t.settingsTitle;
   btnDialogSkip.textContent = t.skipButtonLabel;
   btnFeedback.textContent = t.feedbackLabel;
+  settingsCopyright.textContent = t.copyrightNotice;
   btnFeedbackPotion.setAttribute("aria-label", t.feedbackLabel);
   feedbackPotionLabel.textContent = t.feedbackTitle;
   renderStats();

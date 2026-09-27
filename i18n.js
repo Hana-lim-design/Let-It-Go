@@ -52,6 +52,8 @@ export const STRINGS = {
     statStoriesLabel: "Stories",
     // 대화 다시보기 Skip 버튼은 언어와 상관없이 항상 이 문구로 고정.
     skipButtonLabel: "Skip >",
+    // 저작권 표기도 언어와 상관없이 항상 이 문구로 고정.
+    copyrightNotice: "© 2026 Soyoung. All rights reserved.",
   },
   en: {
     onboardingLine:
@@ -100,5 +102,6 @@ export const STRINGS = {
     statTotalLabel: "Total",
     statStoriesLabel: "Stories",
     skipButtonLabel: "Skip >",
+    copyrightNotice: "© 2026 Soyoung. All rights reserved.",
   },
 };
