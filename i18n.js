@@ -22,6 +22,7 @@ export const STRINGS = {
     inputError: "내용을 입력해주세요.",
     submitButton: "전달하기",
     submitNotice: "작성된 내용은 어디에도 저장되지 않습니다.",
+    onboardingPrivacyNotice: "",
     dragPrompt: "??? : 이곳에 너의 이야기를 넣어봐.",
     afterDropMessage: "뭔가.. 마음이 후련한 것 같은데?",
     resultMessage:
@@ -72,6 +73,7 @@ export const STRINGS = {
     inputError: "Please write something first.",
     submitButton: "Submit",
     submitNotice: "What you write here is never saved.",
+    onboardingPrivacyNotice: "",
     dragPrompt: "??? : Go ahead, put your story in here.",
     afterDropMessage: "Somehow... I feel lighter already?",
     resultMessage:
