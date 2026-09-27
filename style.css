@@ -1634,6 +1634,13 @@ button {
      일어나서(방/마법사가 노출될 틈이 없음), 이 페이드는 어두운 배경
      위로 결과 문구만 서서히 떠오르는 느낌을 준다. */
   opacity: 0;
+  /* opacity가 1이 아닌(또는 opacity를 애니메이션하는) 요소는 자신만의
+     스태킹 컨텍스트를 만든다. 이 z-index가 없으면 #screen-result 자체가
+     #app 기준으로는 z-index:auto 취급돼서, 안의 .result-panel(z-index:51)이
+     아무리 높아도 형제 .app-frame(z-index:50)에 통째로 가려진다(클릭은
+     .app-frame이 pointer-events:none이라 되는데 화면엔 안 보이는 버그).
+     .app-frame보다 위에 오도록 여기서도 51을 맞춰준다. */
+  z-index: 51;
 }
 
 #screen-result.active {

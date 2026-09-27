@@ -14,7 +14,7 @@ import {
   isBgmMuted,
   resumeAudioContext,
 } from "./sound.js";
-import { getStats, recordVisit, recordStory, scheduleMidnightReset } from "./stats.js";
+import { initStats, recordVisit, recordStory } from "./stats.js";
 
 initSounds();
 
@@ -155,10 +155,10 @@ function setState(next) {
 let currentLang = "ko";
 let onboardingTypewriter = null;
 
-// 방문/이야기 횟수. localStorage에서 읽어온 값을 들고 있다가, 이벤트가
-// 생길 때마다(들어가기 클릭/소멸 애니메이션 실행) 갱신하고 화면도 즉시
-// 다시 그린다.
-let visitStats = getStats();
+// 방문/이야기 횟수. Firebase가 설정돼 있으면 모든 기기·방문자가 공유하는
+// 값을 실시간 구독하고(누가 어디서 올리든 즉시 반영), 아니면 이 기기의
+// localStorage 값으로 대체된다(stats.js가 알아서 고른다).
+let visitStats = { today: 0, total: 0, stories: 0 };
 
 function renderStats() {
   const t = STRINGS[currentLang];
@@ -167,9 +167,7 @@ function renderStats() {
   statStoriesEl.textContent = `${t.statStoriesLabel} ${visitStats.stories}`;
 }
 
-// 탭을 자정 너머로 계속 켜둔 채로 있어도, 새로고침 없이 Today가 0으로
-// 바로 반영되게 한다.
-scheduleMidnightReset((stats) => {
+initStats((stats) => {
   visitStats = stats;
   renderStats();
 });
@@ -355,8 +353,7 @@ btnEnter.addEventListener("click", () => {
   if (screenOnboarding.classList.contains("opening")) return;
   screenOnboarding.classList.add("opening");
   playSound("doorCreak");
-  visitStats = recordVisit();
-  renderStats();
+  recordVisit();
   setTimeout(() => {
     // 문이 다 열린 뒤: 문 안쪽으로 빨려들어가듯 확대 + 서서히 암전
     doorStage.classList.add("zooming");
@@ -787,8 +784,7 @@ function handleMemoDropSuccess() {
   // 드래그가 성공한 순간부터 결과 화면으로 넘어가기 전까지, 안내 문구
   // 대신 이 문구를 계속 보여준다(dialogAdvanceLocked라 탭해도 안 바뀐다).
   dialogText.textContent = STRINGS[currentLang].afterDropMessage;
-  visitStats = { ...visitStats, stories: recordStory() };
-  renderStats();
+  recordStory();
   const effect = destroyEffects[Math.floor(Math.random() * destroyEffects.length)];
   effect(() => enterResult());
 }

@@ -7,7 +7,7 @@ export const STRINGS = {
       "이곳에는 신비로운 마법사가 산다고 한다.\n어쩌면, 당신의 마음속 이야기를 사라지게 할 수도 있지.",
     enterButton: "들어가기",
     roomLines: [
-      "우와..이곳은 뭐지?",
+      "우와..여긴 뭐지?",
       "??? : 기다리고 있었어.",
       "??? : ...이야기가 있어 보이네?",
       "네? 무슨 말인지..",
@@ -23,11 +23,11 @@ export const STRINGS = {
     submitButton: "전달하기",
     submitNotice: "작성된 내용은 어디에도 저장되지 않습니다.",
     onboardingPrivacyNotice: "",
-    dragPrompt: "??? : 이곳에 너의 이야기를 넣어봐.",
-    afterDropMessage: "뭔가.. 마음이 후련한 것 같은데?",
+    dragPrompt: "??? : 이곳에 이야기를 넣어봐.",
+    afterDropMessage: "뭔가..마음이 후련해진 것 같아",
     resultMessage:
       "없애고 싶은 이야기가 있으면 언제든지 와.\n난 항상 여기에 있어.",
-    restartButton: "알겠어",
+    restartButton: "또 다른 이야기 쓰기",
     doorAlt: "마법사의 방으로 통하는 문",
     roomAlt: "마법사의 방",
     wizardAlt: "마법사 캐릭터",
@@ -78,7 +78,7 @@ export const STRINGS = {
     afterDropMessage: "Somehow... I feel lighter already?",
     resultMessage:
       "If you ever have another story you want to let go of, come find me.\nI'll always be right here.",
-    restartButton: "Okay",
+    restartButton: "Write Another Story",
     doorAlt: "A door leading to the wizard's room",
     roomAlt: "The wizard's room",
     wizardAlt: "The wizard character",
