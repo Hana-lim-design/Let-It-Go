@@ -13,13 +13,24 @@ const KEY_TODAY_VISITS = "letItGo_todayVisits";
 const KEY_TODAY_DATE = "letItGo_todayDate";
 const KEY_TOTAL_STORIES = "letItGo_totalStories";
 
-// 기기의 로컬 자정 기준으로 날짜가 바뀌었는지 비교하기 위한 키(YYYY-MM-DD).
-function todayDateKey() {
+// 로컬(기기별) 모드 전용 — 이 기기의 로컬 자정 기준으로 날짜가 바뀌었는지
+// 비교하기 위한 키(YYYY-MM-DD). 기기 하나만 보는 값이라 그 기기의 자정을
+// 기준으로 삼는 게 자연스럽다.
+function localTodayDateKey() {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+// Firebase(전역 공유) 모드 전용 — 전 세계 방문자가 같은 값을 보므로, 특정
+// 지역의 로컬 시간을 기준으로 삼으면 그 지역이 아닌 방문자에게는 늘 애매한
+// 시간에 리셋되는 문제가 생긴다(실제로 이 버그 때문에 시간대가 다른
+// 방문자끼리 "오늘" 날짜를 서로 계속 덮어써서 Today가 0으로 보이는 문제가
+// 있었다). 특정 지역 대신 전 세계에 중립적인 UTC 자정을 공통 기준으로 쓴다.
+function utcTodayDateKey() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 // firebase-config.js를 아직 실제 값으로 안 채웠으면(placeholder 그대로면)
@@ -42,7 +53,7 @@ function readInt(key) {
 
 function ensureTodayIsCurrent() {
   const storedDate = localStorage.getItem(KEY_TODAY_DATE);
-  const currentDate = todayDateKey();
+  const currentDate = localTodayDateKey();
   if (storedDate !== currentDate) {
     localStorage.setItem(KEY_TODAY_DATE, currentDate);
     localStorage.setItem(KEY_TODAY_VISITS, "0");
@@ -106,7 +117,7 @@ function getFirebaseStatsRef() {
 }
 
 function normalizeSnapshotValue(val) {
-  const today = todayDateKey();
+  const today = utcTodayDateKey();
   const storedTodayDate = val?.today?.date;
   return {
     today: storedTodayDate === today ? val?.today?.count || 0 : 0,
@@ -117,7 +128,7 @@ function normalizeSnapshotValue(val) {
 
 function recordFirebaseVisit() {
   const ref = getFirebaseStatsRef();
-  const today = todayDateKey();
+  const today = utcTodayDateKey();
   ref.transaction((current) => {
     const next = current || {};
     if (!next.today || next.today.date !== today) {
