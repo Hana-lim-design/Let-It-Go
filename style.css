@@ -1385,6 +1385,15 @@ button {
      자동으로 내려준다). */
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* 스크롤 기능은 그대로 두고, 스크롤바만 시각적으로 숨긴다(그림 톤과
+     안 어울려서). 파이어폭스/구형 엣지용, 아래 ::-webkit-scrollbar는
+     크롬·사파리·최신 엣지용. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dialog-box::-webkit-scrollbar {
+  display: none;
 }
 
 .dialog-text {
