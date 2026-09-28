@@ -111,6 +111,20 @@ const dialogBox = document.getElementById("dialog-box");
 const dialogText = document.getElementById("dialog-text-content");
 const dialogNextHint = document.getElementById("dialog-next-hint");
 const btnDialogSkip = document.getElementById("btn-dialog-skip");
+
+// 문구가 대화창(안내판) 높이보다 길어지면 overflow-y:auto로 스크롤이
+// 생기는데, 타이핑/문구 교체가 일어날 때마다 항상 최신 줄이 보이도록
+// 맨 아래로 자동으로 내려준다. 타이핑 엔진(dialogue.js)의 char-by-char
+// 출력이든, main.js 곳곳의 직접 textContent 대입이든 전부 이 한 곳에서
+// 커버하기 위해 MutationObserver로 두 대화창을 감시한다.
+function keepDialogBoxScrolledToBottom(boxEl) {
+  const observer = new MutationObserver(() => {
+    boxEl.scrollTop = boxEl.scrollHeight;
+  });
+  observer.observe(boxEl, { childList: true, characterData: true, subtree: true });
+}
+keepDialogBoxScrolledToBottom(onboardingDialogBox);
+keepDialogBoxScrolledToBottom(dialogBox);
 const inputArea = document.getElementById("input-area");
 const inputText = document.getElementById("input-text");
 const inputError = document.getElementById("input-error");

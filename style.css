@@ -1380,6 +1380,11 @@ button {
   cursor: pointer;
   color: #2c1e3d;
   text-align: left;
+  /* 문구가 안내판 높이보다 길어지면 밖으로 삐져나오는 대신, 이 박스
+     안에서만 스크롤되게 한다(JS가 타이핑/텍스트 변경마다 맨 아래로
+     자동으로 내려준다). */
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dialog-text {
