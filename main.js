@@ -332,7 +332,11 @@ function closeSettings() {
   settingsOverlay.classList.add("hidden");
 }
 
-btnSettings.addEventListener("click", openSettings);
+btnSettings.addEventListener("click", () => {
+  // 종이에 글을 쓰는 동안은 책 아이콘이 보이지 않으므로 키보드로도 열리지 않게 한다.
+  if (btnSettings.classList.contains("is-hidden")) return;
+  openSettings();
+});
 btnSettingsClose.addEventListener("click", closeSettings);
 settingsOverlay.addEventListener("click", (e) => {
   if (e.target === settingsOverlay) closeSettings(); // 바깥(배경) 클릭만 닫기
@@ -390,6 +394,8 @@ btnEnter.addEventListener("click", () => {
       memoStage.classList.remove("is-visible");
       settingsBookLabel.classList.remove("is-hidden");
       feedbackPotionLabel.classList.remove("is-hidden");
+      btnSettings.classList.remove("is-hidden");
+      btnFeedbackPotion.classList.remove("is-hidden");
       visitStatsEl.classList.remove("is-hidden");
       imgCauldron.classList.remove("is-visible");
       resetDragMemo();
@@ -428,6 +434,8 @@ function revealMemoStage() {
   setTimeout(() => stopLoop("paperAppear"), PAPER_APPEAR_ANIM_MS);
   settingsBookLabel.classList.add("is-hidden"); // 종이 위에 겹쳐 보이지 않게
   feedbackPotionLabel.classList.add("is-hidden");
+  btnSettings.classList.add("is-hidden");
+  btnFeedbackPotion.classList.add("is-hidden");
   visitStatsEl.classList.add("is-hidden");
   setTimeout(() => {
     inputArea.hidden = false;
@@ -538,13 +546,16 @@ function clampToWeightLimit(text, limit) {
 
 const CAULDRON_APPEAR_DELAY_MS = 400; // 냄비가 뜬 뒤 메모지가 나타나기까지 텀
 const DRAG_MOVE_THRESHOLD = 4; // 이보다 적게 움직이면 "탭"으로 취급(접근성 대체 경로)
+// 종이를 찾기 쉽게 하는 분홍 테두리 효과(.memo-hint)는 이만큼 이상 끌려가면
+// 꺼진다. 터치로 살짝 스치기만 해도 꺼지지 않도록 위 탭 기준보다 크게 잡는다.
+const MEMO_HINT_CLEAR_DISTANCE = 6;
 
 let dragState = null;
 
 function resetDragMemo() {
   dragState = null;
   stopLoop("paperDrag");
-  dragMemo.classList.remove("is-visible", "dragging", "ember-bounce", "burst-suck");
+  dragMemo.classList.remove("is-visible", "dragging", "ember-bounce", "burst-suck", "memo-hint");
   imgCauldron.classList.remove("impact-pulse");
   cauldronOutline.classList.remove("is-active");
   destroyFlash.classList.remove("flashing");
@@ -557,6 +568,8 @@ function resetDragMemo() {
 
 function returnDragMemoHome() {
   dragMemo.classList.remove("dragging");
+  // 솥에 못 넣고 제자리로 돌아오면 다시 찾기 쉽게 테두리 효과를 되살린다.
+  dragMemo.classList.add("memo-hint");
   cauldronOutline.classList.remove("is-active");
   dragMemo.style.left = "";
   dragMemo.style.top = "";
@@ -608,6 +621,9 @@ dragMemo.addEventListener("pointermove", (e) => {
   const dy = e.clientY - dragState.startClientY;
   if (Math.abs(dx) > DRAG_MOVE_THRESHOLD || Math.abs(dy) > DRAG_MOVE_THRESHOLD) {
     dragState.moved = true;
+  }
+  if (Math.abs(dx) > MEMO_HINT_CLEAR_DISTANCE || Math.abs(dy) > MEMO_HINT_CLEAR_DISTANCE) {
+    dragMemo.classList.remove("memo-hint");
   }
 
   const parentRect = dragMemo.parentElement.getBoundingClientRect();
@@ -810,6 +826,8 @@ function showCauldron() {
   memoStage.classList.remove("is-visible");
   settingsBookLabel.classList.remove("is-hidden");
   feedbackPotionLabel.classList.remove("is-hidden");
+  btnSettings.classList.remove("is-hidden");
+  btnFeedbackPotion.classList.remove("is-hidden");
   visitStatsEl.classList.remove("is-hidden");
   imgCauldron.classList.add("is-visible");
   // 성공적으로 드래그해 넣기 전까지(handleMemoDropSuccess에서 멈춘다)
@@ -824,7 +842,7 @@ function showCauldron() {
 
   setTimeout(() => {
     resetDragMemo();
-    dragMemo.classList.add("is-visible");
+    dragMemo.classList.add("is-visible", "memo-hint");
   }, CAULDRON_APPEAR_DELAY_MS);
 }
 
@@ -849,6 +867,8 @@ btnSubmit.addEventListener("click", () => {
   memoStage.classList.remove("is-visible");
   settingsBookLabel.classList.remove("is-hidden");
   feedbackPotionLabel.classList.remove("is-hidden");
+  btnSettings.classList.remove("is-hidden");
+  btnFeedbackPotion.classList.remove("is-hidden");
   visitStatsEl.classList.remove("is-hidden");
 
   // 마법사가 다시 등장하는 느낌을 주기 위해 디졸브 애니메이션을 새로 재생.
